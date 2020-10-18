@@ -1,34 +1,39 @@
-type ErrorFilter<E> = (error: E, handled?: boolean) => boolean;
-export type ErrorTrap<E> = (error: E, handled?: boolean) => boolean | ErrorTrap<E>;
+export type ErrorFilter<E> = (error: E, handled?: boolean) => boolean;
+export type ErrorTrap<E, R = any> = (error: E, handled?: boolean) => R;
+export type ErrorHandler<E> = ErrorTrap<E> | ErrorTrap<E>[];
 
-export function errorTrap<E extends Error>(handler: ErrorTrap<E>[] | ErrorTrap<E>, ...filters: ErrorFilter<E>[]): ErrorTrap<E> {
-	return (error: E, handled: boolean = false) => filters.every(f => f(error, handled))
-		? (error) => {
-			const handlers: ErrorTrap<E>[] = [].concat(handler);
-			let handled = false;
+export function errorTrap<E extends Error>(handler: ErrorHandler<E>, ...filters: ErrorFilter<E>[]): ErrorTrap<E, true> {
+	return (error: E, handled: boolean = false) => {
+		const pass = filters.every(f => f(error, handled));
 
-			for (let handler of handlers) {
-				handled = handler(error, handled);
+		if (pass) {
+			const handlers = [].concat(handler);
+			try {
+				processTraps<E>(handlers, error, handled);
+				return true;
+			} catch (e) {
 			}
-
-			return handled;
 		}
-		: false;
+
+		throw error;
+	};
 }
 
-function processTrap<E>(error: E): boolean {
-	const handlers: ErrorTrap<E>[] = [].concat(handler);
-	let handled = false;
-
+function processTraps<E extends Error>(handlers: ErrorTrap<E>[], error: E, handled: boolean) {
 	for (let handler of handlers) {
-		const res = handler(error, handled);
+		try {
+			const ret = handler(error, handled);
 
-		if(typeof res === 'function') {
-			handled = processTrap(error);
-		} else {
-			handled = res;
+			if (typeof ret === 'function') {
+				processTraps([ret], error, handled);
+			}
+
+			handled = true;
+		} catch (e) {
 		}
 	}
 
-	return handled;
+	if (!handled) {
+		throw error;
+	}
 }

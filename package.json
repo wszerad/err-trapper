@@ -1,5 +1,5 @@
 {
-	"name": "err-trapper",
+	"name": "error-trap",
 	"author": "wszerad91@gmail.com",
 	"license": "MIT",
 	"version": "0.0.1",
@@ -23,6 +23,6 @@
 	},
 	"repository": {
 		"type": "git",
-		"url": "https://github.com/wszerad/err-trapper.git"
+		"url": "https://github.com/wszerad/error-trap.git"
 	}
 }
